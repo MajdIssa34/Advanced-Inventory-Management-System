@@ -14,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,34 +30,50 @@ public class OrderService {
 
         List<OrderLineItems> orderLineItemsList = orderRequest.getOrderLineItemsDtoList()
                 .stream()
-                .map(this::mapToDto).toList();
-                
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+
         order.setOrderLineItemsList(orderLineItemsList);
 
-        List<String> skuCodes = order.getOrderLineItemsList().stream().map(OrderLineItems::getSkuCode)
-                .toList();
+        List<String> skuCodes = orderLineItemsList.stream()
+                .map(OrderLineItems::getSkuCode)
+                .collect(Collectors.toList());
 
-        InventoryResponse[] result = webClientBuilder.build().get()
-                .uri("http://inventory-service/api/inventory", uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
+        // Call Inventory Service
+        InventoryResponse[] inventoryResponses = webClientBuilder.build().get()
+                .uri("http://inventory-service/api/inventory",
+                        uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
                 .retrieve()
                 .bodyToMono(InventoryResponse[].class)
                 .block();
 
-        boolean finalRes = Arrays.stream(result).allMatch(InventoryResponse::isInStock);
-        if(finalRes){
-            orderRepo.save(order);
-        }
-        else{
-            throw new IllegalArgumentException("Product not in stock :(");
+        // Check that all SKUs exist in the response
+        List<String> foundSkus = Arrays.stream(inventoryResponses)
+                .map(InventoryResponse::getSkuCode)
+                .collect(Collectors.toList());
+
+        for (String sku : skuCodes) {
+            if (!foundSkus.contains(sku)) {
+                throw new IllegalArgumentException("SKU not found in inventory: " + sku);
+            }
         }
 
+        // Check that all found SKUs are in stock
+        boolean allInStock = Arrays.stream(inventoryResponses)
+                .allMatch(InventoryResponse::isInStock);
+
+        if (allInStock) {
+            orderRepo.save(order);
+        } else {
+            throw new IllegalArgumentException("One or more products are out of stock.");
+        }
     }
 
-    private OrderLineItems mapToDto(OrderLineItemsDto orderLineItemsDto) {
-        OrderLineItems orderLineItems = new OrderLineItems();
-        orderLineItems.setPrice(orderLineItemsDto.getPrice());
-        orderLineItems.setQuantity(orderLineItemsDto.getQuantity());
-        orderLineItems.setSkuCode(orderLineItemsDto.getSkuCode());
-        return orderLineItems;
+    private OrderLineItems mapToDto(OrderLineItemsDto dto) {
+        OrderLineItems item = new OrderLineItems();
+        item.setPrice(dto.getPrice());
+        item.setQuantity(dto.getQuantity());
+        item.setSkuCode(dto.getSkuCode());
+        return item;
     }
 }
