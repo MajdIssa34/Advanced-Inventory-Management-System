@@ -21,4 +21,11 @@ public class InventoryController {
         return inventoryService.isInStock(skuCode);
     }
 
+    @PutMapping("/reduce-stock")
+    @ResponseStatus(HttpStatus.OK)
+    public void reduceStock(@RequestBody List<InventoryResponse> items) {
+        inventoryService.reduceStock(items);
+    }
+
+
 }

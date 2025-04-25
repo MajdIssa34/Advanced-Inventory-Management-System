@@ -24,7 +24,7 @@ public class OrderService {
     private final WebClient.Builder webClientBuilder;
     private final OrderRepo orderRepo;
 
-    public void placeOrder(OrderRequest orderRequest){
+    public void placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
 
@@ -47,7 +47,7 @@ public class OrderService {
                 .bodyToMono(InventoryResponse[].class)
                 .block();
 
-        // Check that all SKUs exist in the response
+        // Validate SKU existence
         List<String> foundSkus = Arrays.stream(inventoryResponses)
                 .map(InventoryResponse::getSkuCode)
                 .collect(Collectors.toList());
@@ -58,15 +58,30 @@ public class OrderService {
             }
         }
 
-        // Check that all found SKUs are in stock
-        boolean allInStock = Arrays.stream(inventoryResponses)
-                .allMatch(InventoryResponse::isInStock);
+        // Validate quantity
+        boolean allInStock = orderLineItemsList.stream().allMatch(orderItem ->
+                Arrays.stream(inventoryResponses).anyMatch(inventoryItem ->
+                        inventoryItem.getSkuCode().equals(orderItem.getSkuCode()) &&
+                                inventoryItem.isInStock() &&
+                                inventoryItem.getQuantity() >= orderItem.getQuantity()
+                )
+        );
 
         if (allInStock) {
+            // Save order
             orderRepo.save(order);
+
+            // Reduce stock by sending POST request to inventory-service
+            webClientBuilder.build().put()
+                    .uri("http://inventory-service/api/inventory/reduce-stock")
+                    .bodyValue(orderLineItemsList)
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block();
         } else {
-            throw new IllegalArgumentException("One or more products are out of stock.");
+            throw new IllegalArgumentException("One or more products are out of stock or quantity is insufficient.");
         }
+
     }
 
     private OrderLineItems mapToDto(OrderLineItemsDto dto) {
