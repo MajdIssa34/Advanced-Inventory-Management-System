@@ -1,5 +1,6 @@
 package com.codingwithmajd.inventory_service.controller;
 
+import com.codingwithmajd.inventory_service.dto.InventoryRequest;
 import com.codingwithmajd.inventory_service.dto.InventoryResponse;
 import com.codingwithmajd.inventory_service.service.InventoryService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,13 @@ public class InventoryController {
     public void reduceStock(@RequestBody List<InventoryResponse> items) {
         inventoryService.reduceStock(items);
     }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public void createInventory(@RequestBody InventoryRequest inventoryRequest) {
+        inventoryService.createInventory(inventoryRequest);
+    }
+
 
 
 }

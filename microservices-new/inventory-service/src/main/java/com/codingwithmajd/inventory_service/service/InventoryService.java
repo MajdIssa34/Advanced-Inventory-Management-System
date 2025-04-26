@@ -1,6 +1,7 @@
 package com.codingwithmajd.inventory_service.service;
 
 import com.codingwithmajd.inventory_service.Repo.InventoryRepo;
+import com.codingwithmajd.inventory_service.dto.InventoryRequest;
 import com.codingwithmajd.inventory_service.dto.InventoryResponse;
 import com.codingwithmajd.inventory_service.model.Inventory;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,14 @@ public class InventoryService {
             inventoryRepo.save(inventory);
         }
     }
+
+    public void createInventory(InventoryRequest inventoryRequest) {
+        Inventory inventory = new Inventory();
+        inventory.setSkuCode(inventoryRequest.getSkuCode());
+        inventory.setQuantity(inventoryRequest.getQuantity());
+        inventoryRepo.save(inventory);
+    }
+
 
 
 
