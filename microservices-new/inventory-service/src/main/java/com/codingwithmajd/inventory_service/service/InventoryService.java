@@ -3,6 +3,7 @@ package com.codingwithmajd.inventory_service.service;
 import com.codingwithmajd.inventory_service.Repo.InventoryRepo;
 import com.codingwithmajd.inventory_service.dto.InventoryRequest;
 import com.codingwithmajd.inventory_service.dto.InventoryResponse;
+import com.codingwithmajd.inventory_service.dto.OrderLineItemsDto;
 import com.codingwithmajd.inventory_service.model.Inventory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,8 +27,8 @@ public class InventoryService {
                 .toList();
     }
 
-    public void reduceStock(List<InventoryResponse> items) {
-        for (InventoryResponse item : items) {
+    public void reduceStock(List<OrderLineItemsDto> items) {
+        for (OrderLineItemsDto item : items) {
             Inventory inventory = inventoryRepo.findBySkuCode(item.getSkuCode())
                     .orElseThrow(() -> new RuntimeException("SKU not found: " + item.getSkuCode()));
 

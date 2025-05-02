@@ -2,6 +2,7 @@ package com.codingwithmajd.inventory_service.controller;
 
 import com.codingwithmajd.inventory_service.dto.InventoryRequest;
 import com.codingwithmajd.inventory_service.dto.InventoryResponse;
+import com.codingwithmajd.inventory_service.dto.OrderLineItemsDto;
 import com.codingwithmajd.inventory_service.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,7 +25,7 @@ public class InventoryController {
 
     @PutMapping("/reduce-stock")
     @ResponseStatus(HttpStatus.OK)
-    public void reduceStock(@RequestBody List<InventoryResponse> items) {
+    public void reduceStock(@RequestBody List<OrderLineItemsDto> items) {
         inventoryService.reduceStock(items);
     }
 
