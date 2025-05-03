@@ -3,10 +3,12 @@ package com.codewithmajd.order_service.service;
 import com.codewithmajd.order_service.dto.InventoryResponse;
 import com.codewithmajd.order_service.dto.OrderLineItemsDto;
 import com.codewithmajd.order_service.dto.OrderRequest;
+import com.codewithmajd.order_service.event.OrderPlacedEvent;
 import com.codewithmajd.order_service.model.Order;
 import com.codewithmajd.order_service.model.OrderLineItems;
 import com.codewithmajd.order_service.repo.OrderRepo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -23,6 +25,7 @@ public class OrderService {
 
     private final WebClient.Builder webClientBuilder;
     private final OrderRepo orderRepo;
+    private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
     public void placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
@@ -70,7 +73,7 @@ public class OrderService {
         if (allInStock) {
             // Save order
             orderRepo.save(order);
-
+            kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber()));
             // Reduce stock by sending POST request to inventory-service
             webClientBuilder.build().put()
                     .uri("http://inventory-service/api/inventory/reduce-stock")
