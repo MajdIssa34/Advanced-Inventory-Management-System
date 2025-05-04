@@ -58,7 +58,7 @@ services:
   keycloak:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:18.0.0
-    command: [ "start-dev", "--import-realm" ]
+    command: start-dev
     environment:
       DB_VENDOR: MYSQL
       DB_ADDR: mysql
@@ -71,6 +71,7 @@ services:
       - "8080:8080"
     volumes:
       - ./realms/:/opt/keycloak/data/import/
+      - ./keycloak_data:/opt/keycloak/data
     depends_on:
       - keycloak-mysql
 
