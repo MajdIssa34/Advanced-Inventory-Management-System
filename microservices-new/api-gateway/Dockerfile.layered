@@ -1,0 +1,29 @@
+# ========================
+# 🛠️ Build Layer Extractor
+# ========================
+FROM eclipse-temurin:21-jdk-alpine as builder
+WORKDIR /extracted
+
+# Copy the built JAR
+COPY target/*.jar app.jar
+
+# Extract layers using Spring Boot layertools
+RUN java -Djarmode=layertools -jar app.jar extract
+
+# ===================
+# 🏃‍ Runtime Image
+# ===================
+FROM eclipse-temurin:21-jdk-alpine
+WORKDIR /app
+
+# Copy each extracted layer
+COPY --from=builder /extracted/dependencies/ ./
+COPY --from=builder /extracted/spring-boot-loader/ ./
+COPY --from=builder /extracted/snapshot-dependencies/ ./
+COPY --from=builder /extracted/application/ ./
+
+# Expose default port
+EXPOSE 8080
+
+# Use the Spring Boot layer-aware launcher
+ENTRYPOINT ["java", "org.springframework.boot.loader.JarLauncher"]

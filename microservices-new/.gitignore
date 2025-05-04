@@ -36,3 +36,9 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# Ignore Docker volumes and database data
+mongo-data/
+mysql_keycloak_data/
+postgres-inventory/
+postgres-order/
