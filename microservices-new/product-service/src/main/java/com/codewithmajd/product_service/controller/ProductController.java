@@ -28,4 +28,29 @@ public class ProductController {
     public List<ProductResponse> getAllProducts(){
         return productService.getAllProducts();
     }
+
+    @GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public ProductResponse getProductById(@PathVariable String id) {
+        return productService.getProductById(id);
+    }
+
+    @GetMapping("/sku/{skuCode}")
+    @ResponseStatus(HttpStatus.OK)
+    public ProductResponse getProductBySku(@PathVariable String skuCode) {
+        return productService.getProductBySku(skuCode);
+    }
+
+    @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public void updateProduct(@PathVariable String id, @RequestBody ProductRequest request) {
+        productService.updateProduct(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteProduct(@PathVariable String id) {
+        productService.deleteProduct(id);
+    }
+
 }

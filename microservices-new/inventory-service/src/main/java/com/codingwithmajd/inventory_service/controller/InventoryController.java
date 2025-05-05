@@ -35,6 +35,28 @@ public class InventoryController {
         inventoryService.createInventory(inventoryRequest);
     }
 
+    @DeleteMapping
+    @ResponseStatus(HttpStatus.OK)
+    public void deleteInventory(@RequestParam String skuCode){
+        inventoryService.deleteInventory(skuCode);
+    }
 
+    @GetMapping("/all")
+    @ResponseStatus(HttpStatus.OK)
+    public List<InventoryResponse> getAllInventory(){
+        return inventoryService.getAllInventory();
+    }
+
+    @PutMapping("/restock")
+    @ResponseStatus(HttpStatus.OK)
+    public void restockInventory(@RequestBody InventoryRequest inventoryRequest) {
+        inventoryService.restock(inventoryRequest);
+    }
+
+    @GetMapping("/low-stock")
+    @ResponseStatus(HttpStatus.OK)
+    public List<InventoryResponse> getLowStockItems(@RequestParam(defaultValue = "10") Integer threshold) {
+        return inventoryService.getLowStockItems(threshold);
+    }
 
 }

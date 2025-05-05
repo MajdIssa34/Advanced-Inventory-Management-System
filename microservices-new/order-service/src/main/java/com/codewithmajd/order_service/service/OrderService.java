@@ -87,6 +87,31 @@ public class OrderService {
 
     }
 
+    public List<Order> getAllOrders() {
+        return orderRepo.findAll();
+    }
+
+    public Order getOrderByOrderNumber(String orderNumber) {
+        return orderRepo.findAll().stream()
+                .filter(order -> order.getOrderNumber().equals(orderNumber))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Order not found with order number: " + orderNumber));
+    }
+
+    public List<Order> getOrdersBySkuCode(String skuCode) {
+        return orderRepo.findAll().stream()
+                .filter(order -> order.getOrderLineItemsList().stream()
+                        .anyMatch(item -> skuCode.equals(item.getSkuCode())))
+                .toList();
+    }
+
+    public List<Order> getRecentOrders(int limit) {
+        return orderRepo.findAll().stream()
+                .sorted((a, b) -> Long.compare(b.getId(), a.getId())) // newest first
+                .limit(limit)
+                .toList();
+    }
+
     private OrderLineItems mapToDto(OrderLineItemsDto dto) {
         OrderLineItems item = new OrderLineItems();
         item.setPrice(dto.getPrice());

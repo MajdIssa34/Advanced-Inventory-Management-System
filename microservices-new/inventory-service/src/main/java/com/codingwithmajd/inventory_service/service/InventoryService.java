@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -16,6 +17,12 @@ import java.util.List;
 public class InventoryService {
 
     private final InventoryRepo inventoryRepo;
+
+    public void deleteInventory(String skuCode){
+        Inventory inventory = inventoryRepo.findBySkuCode(skuCode)
+                .orElseThrow(() -> new RuntimeException("SKU not found: " + skuCode));
+        inventoryRepo.delete(inventory);
+    }
 
     public List<InventoryResponse> isInStock(List<String> skuCodes) {
         return inventoryRepo.findBySkuCodeIn(skuCodes).stream()
@@ -48,7 +55,24 @@ public class InventoryService {
         inventoryRepo.save(inventory);
     }
 
+    public List<InventoryResponse> getAllInventory(){
+        return inventoryRepo.findAll().stream()
+                .map(inv -> new InventoryResponse(inv.getSkuCode(), inv.getQuantity() > 0, inv.getQuantity()))
+                .toList();
+    }
 
+    public void restock(InventoryRequest request) {
+        Inventory inventory = inventoryRepo.findBySkuCode(request.getSkuCode())
+                .orElseThrow(() -> new RuntimeException("SKU not found: " + request.getSkuCode()));
+        inventory.setQuantity(inventory.getQuantity() + request.getQuantity());
+        inventoryRepo.save(inventory);
+    }
 
+    public List<InventoryResponse> getLowStockItems(int threshold) {
+        return inventoryRepo.findAll().stream()
+                .filter(inv -> inv.getQuantity() <= threshold)
+                .map(inv -> new InventoryResponse(inv.getSkuCode(), inv.getQuantity() > 0, inv.getQuantity()))
+                .toList();
+    }
 
 }
