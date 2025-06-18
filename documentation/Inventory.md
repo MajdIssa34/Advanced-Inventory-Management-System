@@ -1,6 +1,6 @@
 This document provides detailed API documentation for the **Inventory Service**.
 
-## Inventory Service API Documentation
+## Inventory Service API Documentationm
 
 This service is responsible for managing product stock levels. It handles creating inventory items, checking stock, reducing stock for orders, restocking, and reporting.
 
