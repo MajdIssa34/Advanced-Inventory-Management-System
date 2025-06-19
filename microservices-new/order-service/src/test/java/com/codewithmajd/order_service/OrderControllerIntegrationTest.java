@@ -2,6 +2,7 @@ package com.codewithmajd.order_service;
 
 import com.codewithmajd.order_service.event.OrderPlacedEvent;
 import com.codewithmajd.order_service.repo.OrderRepo;
+import com.codewithmajd.order_service.service.OrderService;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,12 +13,17 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -28,12 +34,18 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+// NO @Import annotation needed here anymore
+@SpringBootTest(properties = {
+        "spring.cloud.loadbalancer.enabled=false",
+        "eureka.client.enabled=false"
+})
 @Testcontainers
 @AutoConfigureMockMvc
 @ExtendWith(WireMockExtension.class)
 public class OrderControllerIntegrationTest {
 
+
+    // ... (@Container, @RegisterExtension, @Autowired fields are the same)
     @Container
     static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:15-alpine");
 
@@ -48,18 +60,22 @@ public class OrderControllerIntegrationTest {
     @MockitoBean
     private KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
+    // This is the simplified, final version of this method
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgreSQLContainer::getJdbcUrl);
         registry.add("spring.datasource.username", postgreSQLContainer::getUsername);
         registry.add("spring.datasource.password", postgreSQLContainer::getPassword);
+        registry.add("inventory.service.url", wireMockServer::baseUrl);
 
-        // CORRECT modern Spring LoadBalancer usage
-        registry.add("spring.cloud.discovery.client.simple.instances.inventory-service[0].uri", wireMockServer::baseUrl);
 
-        // Optional: disable Eureka if it's enabled in application.yml
-        registry.add("eureka.client.enabled", () -> "false");
+        // ✅ Explicitly enable LoadBalancer (make sure it's not disabled in any property file!)
+        registry.add("spring.cloud.loadbalancer.enabled", () -> "true");
+
+        // ✅ Tell WebClient's LoadBalancer to resolve inventory-service to WireMock
+        registry.add("spring.cloud.loadbalancer.clients.inventory-service.instances[0].uri", wireMockServer::baseUrl);
     }
+
 
 
     @BeforeEach
@@ -72,17 +88,16 @@ public class OrderControllerIntegrationTest {
         // ARRANGE
         String tenantId = "tenant-electronics-store";
 
-        // This stub is also slightly improved to be more precise
         wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/api/inventory"))
-                .withQueryParam("skuCode", WireMock.equalTo("iphone_15"))
+                .withQueryParam("skuCode", WireMock.containing("iphone_15"))  // not equalTo()
                 .willReturn(WireMock.aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")
                         .withBody("""
-                                [
-                                    {"skuCode": "iphone_15", "isInStock": true, "quantity": 100}
-                                ]
-                                """)));
+                        [
+                            {"skuCode": "iphone_15", "isInStock": true, "quantity": 100}
+                        ]
+                        """)));
 
         wireMockServer.stubFor(WireMock.put("/api/inventory/reduce-stock")
                 .willReturn(WireMock.aResponse().withStatus(200)));
