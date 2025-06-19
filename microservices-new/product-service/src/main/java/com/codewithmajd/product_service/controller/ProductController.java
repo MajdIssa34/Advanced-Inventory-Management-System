@@ -19,38 +19,38 @@ public class ProductController {
 
     @PostMapping
     @ResponseStatus(code = HttpStatus.CREATED)
-    public void createProduct(@RequestBody ProductRequest productRequest){
-        productService.createProduct(productRequest);
+    public void createProduct(@RequestBody ProductRequest productRequest, @RequestHeader("X-Tenant-ID") String tenantId){
+        productService.createProduct(productRequest, tenantId);
     }
 
     @GetMapping
     @ResponseStatus(code = HttpStatus.OK)
-    public List<ProductResponse> getAllProducts(){
-        return productService.getAllProducts();
+    public List<ProductResponse> getAllProducts(@RequestHeader("X-Tenant-ID") String tenantId){
+        return productService.getAllProducts(tenantId);
     }
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public ProductResponse getProductById(@PathVariable String id) {
-        return productService.getProductById(id);
+    public ProductResponse getProductById(@PathVariable String id, @RequestHeader("X-Tenant-ID") String tenantId) {
+        return productService.getProductById(id, tenantId);
     }
 
     @GetMapping("/sku/{skuCode}")
     @ResponseStatus(HttpStatus.OK)
-    public ProductResponse getProductBySku(@PathVariable String skuCode) {
-        return productService.getProductBySku(skuCode);
+    public ProductResponse getProductBySku(@PathVariable String skuCode, @RequestHeader("X-Tenant-ID") String tenantId) {
+        return productService.getProductBySku(skuCode, tenantId);
     }
 
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public void updateProduct(@PathVariable String id, @RequestBody ProductRequest request) {
-        productService.updateProduct(id, request);
+    public void updateProduct(@PathVariable String id, @RequestBody ProductRequest request, @RequestHeader("X-Tenant-ID") String tenantId) {
+        productService.updateProduct(id, request, tenantId);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteProduct(@PathVariable String id) {
-        productService.deleteProduct(id);
+    public void deleteProduct(@PathVariable String id, @RequestHeader("X-Tenant-ID") String tenantId) {
+        productService.deleteProduct(id, tenantId);
     }
 
 }

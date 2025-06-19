@@ -23,5 +23,6 @@ public class Product {
     private BigDecimal price;
     @Indexed(unique = true)
     private String skuCode;
+    private String tenantId;
 
 }
