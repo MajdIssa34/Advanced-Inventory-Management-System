@@ -6,6 +6,7 @@ import com.codingwithmajd.inventory_service.dto.InventoryResponse;
 import com.codingwithmajd.inventory_service.dto.OrderLineItemsDto;
 import com.codingwithmajd.inventory_service.model.Inventory;
 import lombok.RequiredArgsConstructor;
+import org.apache.hc.core5.http.io.entity.HttpEntities;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,18 +15,22 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class InventoryService {
 
     private final InventoryRepo inventoryRepo;
 
-    public void deleteInventory(String skuCode){
-        Inventory inventory = inventoryRepo.findBySkuCode(skuCode)
-                .orElseThrow(() -> new RuntimeException("SKU not found: " + skuCode));
-        inventoryRepo.delete(inventory);
-    }
+    public void deleteInventory(String skuCode, String tenantId){
+        // First, check if the item exists for this tenant to provide a good error message
+        inventoryRepo.findBySkuCodeAndTenantId(skuCode, tenantId)
+                .orElseThrow(() -> new RuntimeException("SKU not found: " + skuCode + " for this tenant"));
 
-    public List<InventoryResponse> isInStock(List<String> skuCodes) {
-        return inventoryRepo.findBySkuCodeIn(skuCodes).stream()
+        // Use the new tenant-aware delete method
+        inventoryRepo.deleteBySkuCodeAndTenantId(skuCode, tenantId);
+    }
+    @Transactional(readOnly = true)
+    public List<InventoryResponse> isInStock(List<String> skuCodes, String tenantId) {
+        return inventoryRepo.findBySkuCodeInAndTenantId(skuCodes, tenantId).stream()
                 .map(inventory -> new InventoryResponse(
                         inventory.getSkuCode(),
                         inventory.getQuantity() > 0,
@@ -34,9 +39,9 @@ public class InventoryService {
                 .toList();
     }
 
-    public void reduceStock(List<OrderLineItemsDto> items) {
+    public void reduceStock(List<OrderLineItemsDto> items, String tenantId) {
         for (OrderLineItemsDto item : items) {
-            Inventory inventory = inventoryRepo.findBySkuCode(item.getSkuCode())
+            Inventory inventory = inventoryRepo.findBySkuCodeAndTenantId(item.getSkuCode(), tenantId)
                     .orElseThrow(() -> new RuntimeException("SKU not found: " + item.getSkuCode()));
 
             if (inventory.getQuantity() < item.getQuantity()) {
@@ -48,28 +53,36 @@ public class InventoryService {
         }
     }
 
-    public void createInventory(InventoryRequest inventoryRequest) {
+    public void createInventory(InventoryRequest inventoryRequest, String tenantId) {
+        // Ensure the SKU doesn't already exist for this tenant
+        inventoryRepo.findBySkuCodeAndTenantId(inventoryRequest.getSkuCode(), tenantId)
+                .ifPresent(inv -> {
+                    throw new IllegalArgumentException("SKU already exists for this tenant: " + inv.getSkuCode());
+                });
+
         Inventory inventory = new Inventory();
         inventory.setSkuCode(inventoryRequest.getSkuCode());
         inventory.setQuantity(inventoryRequest.getQuantity());
+        inventory.setTenantId(tenantId);
         inventoryRepo.save(inventory);
     }
 
-    public List<InventoryResponse> getAllInventory(){
-        return inventoryRepo.findAll().stream()
+    public List<InventoryResponse> getAllInventory(String tenantId){
+        return inventoryRepo.findByTenantId(tenantId).stream()
                 .map(inv -> new InventoryResponse(inv.getSkuCode(), inv.getQuantity() > 0, inv.getQuantity()))
                 .toList();
     }
 
-    public void restock(InventoryRequest request) {
-        Inventory inventory = inventoryRepo.findBySkuCode(request.getSkuCode())
-                .orElseThrow(() -> new RuntimeException("SKU not found: " + request.getSkuCode()));
+    public void restock(InventoryRequest request, String tenantId) {
+        Inventory inventory = inventoryRepo.findBySkuCodeAndTenantId(request.getSkuCode(), tenantId)
+                .orElseThrow(() -> new RuntimeException("SKU not found: " + request.getSkuCode() + " for this tenant"));
         inventory.setQuantity(inventory.getQuantity() + request.getQuantity());
         inventoryRepo.save(inventory);
     }
 
-    public List<InventoryResponse> getLowStockItems(int threshold) {
-        return inventoryRepo.findAll().stream()
+    @Transactional(readOnly = true)
+    public List<InventoryResponse> getLowStockItems(int threshold, String tenantId) {
+        return inventoryRepo.findByTenantId(tenantId).stream()
                 .filter(inv -> inv.getQuantity() <= threshold)
                 .map(inv -> new InventoryResponse(inv.getSkuCode(), inv.getQuantity() > 0, inv.getQuantity()))
                 .toList();

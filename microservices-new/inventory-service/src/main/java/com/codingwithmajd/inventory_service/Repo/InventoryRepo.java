@@ -8,7 +8,11 @@ import java.util.Optional;
 
 public interface InventoryRepo extends JpaRepository<Inventory, Long> {
 
-    List<Inventory> findBySkuCodeIn(List<String> skuCode);
-    Optional<Inventory> findBySkuCode(String skuCode);
+    Optional<Inventory> findBySkuCodeAndTenantId(String skuCode, String tenantId);
 
+    List<Inventory> findBySkuCodeInAndTenantId(List<String> skuCodes, String tenantId);
+
+    List<Inventory> findByTenantId(String tenantId);
+
+    void deleteBySkuCodeAndTenantId(String skuCode, String tenantId);
 }
