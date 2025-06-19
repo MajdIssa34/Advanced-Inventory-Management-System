@@ -18,32 +18,32 @@ public class OrderController {
 
     @PostMapping
     @ResponseStatus(code = org.springframework.http.HttpStatus.CREATED)
-    public String placeOrder(@RequestBody OrderRequest orderRequest){
-        orderService.placeOrder(orderRequest);
+    public String placeOrder(@RequestBody OrderRequest orderRequest, @RequestHeader("X-Tenant-ID") String tenantId){
+        orderService.placeOrder(orderRequest, tenantId);
         return "Order Placed";
     }
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<Order> getAllOrders() {
-        return orderService.getAllOrders();
+    public List<Order> getAllOrders(@RequestHeader("X-Tenant-ID") String tenantId) {
+        return orderService.getAllOrders(tenantId);
     }
 
     @GetMapping("/{orderNumber}")
     @ResponseStatus(HttpStatus.OK)
-    public Order getOrderByOrderNumber(@PathVariable String orderNumber) {
-        return orderService.getOrderByOrderNumber(orderNumber);
+    public Order getOrderByOrderNumber(@PathVariable String orderNumber, @RequestHeader("X-Tenant-ID") String tenantId) {
+        return orderService.getOrderByOrderNumber(orderNumber, tenantId);
     }
 
     @GetMapping("/sku/{skuCode}")
     @ResponseStatus(HttpStatus.OK)
-    public List<Order> getOrdersBySkuCode(@PathVariable String skuCode) {
-        return orderService.getOrdersBySkuCode(skuCode);
+    public List<Order> getOrdersBySkuCode(@PathVariable String skuCode, @RequestHeader("X-Tenant-ID") String tenantId) {
+        return orderService.getOrdersBySkuCode(skuCode, tenantId);
     }
 
     @GetMapping("/recent")
     @ResponseStatus(HttpStatus.OK)
-    public List<Order> getRecentOrders(@RequestParam(defaultValue = "5") int limit) {
-        return orderService.getRecentOrders(limit);
+    public List<Order> getRecentOrders(@RequestParam(defaultValue = "5") int limit, @RequestHeader("X-Tenant-ID") String tenantId) {
+        return orderService.getRecentOrders(limit, tenantId);
     }
 }

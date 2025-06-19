@@ -27,9 +27,10 @@ public class OrderService {
     private final OrderRepo orderRepo;
     private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
-    public void placeOrder(OrderRequest orderRequest) {
+    public void placeOrder(OrderRequest orderRequest, String tenantId) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
+        order.setTenantId(tenantId);
 
         List<OrderLineItems> orderLineItemsList = orderRequest.getOrderLineItemsDtoList()
                 .stream()
@@ -46,6 +47,7 @@ public class OrderService {
         InventoryResponse[] inventoryResponses = webClientBuilder.build().get()
                 .uri("http://inventory-service/api/inventory",
                         uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
+                .header("X-Tenant-ID", tenantId)
                 .retrieve()
                 .bodyToMono(InventoryResponse[].class)
                 .block();
@@ -53,7 +55,7 @@ public class OrderService {
         // Validate SKU existence
         List<String> foundSkus = Arrays.stream(inventoryResponses)
                 .map(InventoryResponse::getSkuCode)
-                .collect(Collectors.toList());
+                .toList();
 
         for (String sku : skuCodes) {
             if (!foundSkus.contains(sku)) {
@@ -73,10 +75,11 @@ public class OrderService {
         if (allInStock) {
             // Save order
             orderRepo.save(order);
-            kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber()));
+            kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber(), tenantId));
             // Reduce stock by sending POST request to inventory-service
             webClientBuilder.build().put()
                     .uri("http://inventory-service/api/inventory/reduce-stock")
+                    .header("X-Tenant-ID", tenantId)
                     .bodyValue(orderLineItemsList)
                     .retrieve()
                     .bodyToMono(Void.class)
@@ -87,26 +90,21 @@ public class OrderService {
 
     }
 
-    public List<Order> getAllOrders() {
-        return orderRepo.findAll();
+    public List<Order> getAllOrders(String tenantId) {
+        return orderRepo.findByTenantId(tenantId);
     }
 
-    public Order getOrderByOrderNumber(String orderNumber) {
-        return orderRepo.findAll().stream()
-                .filter(order -> order.getOrderNumber().equals(orderNumber))
-                .findFirst()
+    public Order getOrderByOrderNumber(String orderNumber, String tenantId) {
+        return orderRepo.findByOrderNumberAndTenantId(orderNumber, tenantId)
                 .orElseThrow(() -> new RuntimeException("Order not found with order number: " + orderNumber));
     }
 
-    public List<Order> getOrdersBySkuCode(String skuCode) {
-        return orderRepo.findAll().stream()
-                .filter(order -> order.getOrderLineItemsList().stream()
-                        .anyMatch(item -> skuCode.equals(item.getSkuCode())))
-                .toList();
+    public List<Order> getOrdersBySkuCode(String skuCode, String tenantId) {
+        return orderRepo.findByLineItemSkuCodeAndTenantId(skuCode, tenantId);
     }
 
-    public List<Order> getRecentOrders(int limit) {
-        return orderRepo.findAll().stream()
+    public List<Order> getRecentOrders(int limit, String tenantId) {
+        return orderRepo.findByTenantId(tenantId).stream()
                 .sorted((a, b) -> Long.compare(b.getId(), a.getId())) // newest first
                 .limit(limit)
                 .toList();

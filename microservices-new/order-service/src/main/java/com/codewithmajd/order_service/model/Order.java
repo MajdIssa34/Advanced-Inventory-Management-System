@@ -19,6 +19,8 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private String orderNumber;
+    private String tenantId;
+
     @OneToMany(cascade = CascadeType.ALL)
     private List<OrderLineItems> orderLineItemsList;
 }
