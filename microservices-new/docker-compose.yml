@@ -163,14 +163,3 @@ services:
       - discovery-server
       - api-gateway
 
-  ## Notification-Service Docker Compose Config
-  notification-service:
-    container_name: notification-service
-    image: majdissa34/notification-service:latest
-    pull_policy: always
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    depends_on:
-      - broker
-      - discovery-server
-      - api-gateway

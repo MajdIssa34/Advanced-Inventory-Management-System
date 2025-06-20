@@ -5,7 +5,7 @@
 set -euo pipefail  # Safer: exit on error, undefined vars, or failed pipe
 
 # --- Services list ---
-SERVICES=("api-gateway" "product-service" "order-service" "inventory-service" "discovery-server" "notification-service")
+SERVICES=("api-gateway" "product-service" "order-service" "inventory-service" "discovery-server")
 
 echo ""
 echo "--- [1/4] Cleaning and packaging all microservices (skip tests)... ---"

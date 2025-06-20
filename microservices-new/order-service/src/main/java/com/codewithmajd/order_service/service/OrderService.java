@@ -90,7 +90,6 @@ public class OrderService {
 
         if (allInStock) {
             orderRepo.save(order);
-            kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber(), tenantId));
 
             // --- CHANGE 3: USE THE CONFIGURED URL FOR REDUCE-STOCK ---
             String reduceStockUri = UriComponentsBuilder.fromHttpUrl(inventoryServiceUrl)
