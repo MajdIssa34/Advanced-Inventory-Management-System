@@ -1,4 +1,4 @@
-package org.codewithmajd.event;
+package com.codewithmajd.api_gateway.event;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
