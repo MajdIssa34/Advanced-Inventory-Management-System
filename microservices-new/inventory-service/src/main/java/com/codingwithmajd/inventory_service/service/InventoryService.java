@@ -7,11 +7,16 @@ import com.codingwithmajd.inventory_service.dto.OrderLineItemsDto;
 import com.codingwithmajd.inventory_service.exception.InsufficientStockException;
 import com.codingwithmajd.inventory_service.exception.InventoryAlreadyExistsException;
 import com.codingwithmajd.inventory_service.exception.InventoryNotFoundException;
+import com.codingwithmajd.inventory_service.exception.ProductSkuNotFoundException;
 import com.codingwithmajd.inventory_service.model.Inventory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
 import java.util.List;
 
 @Service
@@ -21,6 +26,54 @@ import java.util.List;
 public class InventoryService {
 
     private final InventoryRepo inventoryRepo;
+    private final WebClient.Builder webClientBuilder; // Inject WebClient
+
+    public void createInventory(InventoryRequest inventoryRequest, String tenantId) {
+        // STEP 1: Validate that the product SKU exists in the product-service
+        validateProductExists(inventoryRequest.skuCode(), tenantId);
+
+        // STEP 2: Check if inventory for this SKU already exists
+        inventoryRepo.findBySkuCodeAndTenantId(inventoryRequest.skuCode(), tenantId)
+                .ifPresent(inv -> {
+                    throw new InventoryAlreadyExistsException("Inventory already exists for SKU: " + inv.getSkuCode());
+                });
+
+        // STEP 3: If all checks pass, create the inventory item
+        Inventory inventory = new Inventory();
+        inventory.setSkuCode(inventoryRequest.skuCode());
+        inventory.setQuantity(inventoryRequest.quantity());
+        inventory.setTenantId(tenantId);
+        inventoryRepo.save(inventory);
+        log.info("Inventory created for SKU: {}, Tenant: {}", inventory.getSkuCode(), tenantId);
+    }
+
+    private void validateProductExists(String skuCode, String tenantId) {
+        log.info("Checking for product with SKU {} in product-service", skuCode);
+        try {
+            webClientBuilder.build().get()
+                    // The URI points to the product-service endpoint
+                    .uri("http://product-service/api/product/sku/{skuCode}", skuCode)
+                    .header("X-Tenant-ID", tenantId)
+                    .retrieve()
+                    // We define how to handle specific HTTP status codes
+                    .onStatus(status -> status.value() == 404,
+                            response -> Mono.error(new ProductSkuNotFoundException("Cannot create inventory for a product that does not exist. SKU not found: " + skuCode)))
+                    .onStatus(HttpStatusCode::isError,
+                            response -> Mono.error(new RuntimeException("Error occurred while checking product existence.")))
+                    // We expect an empty body for a successful check, so we ask for Void
+                    .bodyToMono(Void.class)
+                    // .block() makes the WebClient call synchronous
+                    .block();
+            log.info("Product SKU {} found successfully.", skuCode);
+        } catch (ProductSkuNotFoundException e) {
+            // Re-throw our specific exception to be caught by the handler
+            throw e;
+        } catch (Exception e) {
+            // Catch any other potential WebClient errors (e.g., service unavailable)
+            log.error("Error calling product-service", e);
+            throw new RuntimeException("Unable to connect to product service to verify SKU: " + skuCode, e);
+        }
+    }
 
     public void deleteInventory(String skuCode, String tenantId){
         inventoryRepo.findBySkuCodeAndTenantId(skuCode, tenantId)
@@ -53,19 +106,6 @@ public class InventoryService {
         log.info("Stock reduced for tenant {}", tenantId);
     }
 
-    public void createInventory(InventoryRequest inventoryRequest, String tenantId) {
-        inventoryRepo.findBySkuCodeAndTenantId(inventoryRequest.skuCode(), tenantId)
-                .ifPresent(inv -> {
-                    throw new InventoryAlreadyExistsException("Inventory already exists for SKU: " + inv.getSkuCode());
-                });
-
-        Inventory inventory = new Inventory();
-        inventory.setSkuCode(inventoryRequest.skuCode());
-        inventory.setQuantity(inventoryRequest.quantity());
-        inventory.setTenantId(tenantId);
-        inventoryRepo.save(inventory);
-        log.info("Inventory created for SKU: {}, Tenant: {}", inventory.getSkuCode(), tenantId);
-    }
 
     public List<InventoryResponse> getAllInventory(String tenantId){
         return inventoryRepo.findByTenantId(tenantId).stream()
