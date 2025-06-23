@@ -1,16 +1,11 @@
 package com.codewithmajd.order_service.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class OrderRequest {
-
-    private List<OrderLineItemsDto> orderLineItemsDtoList;
-
-}
+public record OrderRequest(
+        @NotEmpty(message = "Order must contain at least one item")
+        @Valid
+        List<OrderLineItemsDto> orderLineItemsDtoList
+) {}
