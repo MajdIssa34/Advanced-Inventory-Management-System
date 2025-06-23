@@ -1,19 +1,21 @@
 package com.codewithmajd.product_service.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class ProductRequest {
-    private String name;
-    private String description;
-    private BigDecimal price;
-    private String skuCode;
+public record ProductRequest(
+        @NotBlank(message = "Product name cannot be blank")
+        String name,
+
+        String description, // Description is optional
+
+        @NotNull(message = "Price is required")
+        @PositiveOrZero(message = "Price must be zero or positive")
+        BigDecimal price,
+
+        @NotBlank(message = "SKU Code cannot be blank")
+        String skuCode
+) {
 }

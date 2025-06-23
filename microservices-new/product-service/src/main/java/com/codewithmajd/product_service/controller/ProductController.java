@@ -2,8 +2,8 @@ package com.codewithmajd.product_service.controller;
 
 import com.codewithmajd.product_service.dto.ProductRequest;
 import com.codewithmajd.product_service.dto.ProductResponse;
-import com.codewithmajd.product_service.model.Product;
 import com.codewithmajd.product_service.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +19,7 @@ public class ProductController {
 
     @PostMapping
     @ResponseStatus(code = HttpStatus.CREATED)
-    public void createProduct(@RequestBody ProductRequest productRequest, @RequestHeader("X-Tenant-ID") String tenantId){
+    public void createProduct(@RequestBody @Valid ProductRequest productRequest, @RequestHeader("X-Tenant-ID") String tenantId){
         productService.createProduct(productRequest, tenantId);
     }
 
@@ -43,7 +43,7 @@ public class ProductController {
 
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public void updateProduct(@PathVariable String id, @RequestBody ProductRequest request, @RequestHeader("X-Tenant-ID") String tenantId) {
+    public void updateProduct(@PathVariable String id, @RequestBody @Valid ProductRequest request, @RequestHeader("X-Tenant-ID") String tenantId) {
         productService.updateProduct(id, request, tenantId);
     }
 
@@ -52,5 +52,4 @@ public class ProductController {
     public void deleteProduct(@PathVariable String id, @RequestHeader("X-Tenant-ID") String tenantId) {
         productService.deleteProduct(id, tenantId);
     }
-
 }
