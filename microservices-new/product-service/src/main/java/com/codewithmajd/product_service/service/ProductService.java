@@ -65,15 +65,28 @@ public class ProductService {
     }
 
     public void updateProduct(String id, ProductRequest request, String tenantId) {
-        Product product = productRepo.findByIdAndTenantId(id, tenantId)
+        // 1. Find the product we intend to update
+        Product productToUpdate = productRepo.findByIdAndTenantId(id, tenantId)
                 .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
 
-        product.setName(request.name());
-        product.setDescription(request.description());
-        product.setPrice(request.price());
-        product.setSkuCode(request.skuCode());
-        productRepo.save(product);
-        log.info("Product {} updated for tenant {}", product.getId(), tenantId);
+        // 2. Check if the new SKU is already taken by ANOTHER product
+        productRepo.findBySkuCodeAndTenantId(request.skuCode(), tenantId)
+                .ifPresent(existingProduct -> {
+                    // If a product with the new SKU exists, we must check if it's a different product.
+                    // It's okay to save if we are updating the product with its own existing SKU.
+                    if (!existingProduct.getId().equals(productToUpdate.getId())) {
+                        throw new ProductAlreadyExistsException("SKU code " + request.skuCode() + " is already in use by another product.");
+                    }
+                });
+
+        // 3. If the check passes, update the product's fields and save
+        productToUpdate.setName(request.name());
+        productToUpdate.setDescription(request.description());
+        productToUpdate.setPrice(request.price());
+        productToUpdate.setSkuCode(request.skuCode());
+
+        productRepo.save(productToUpdate);
+        log.info("Product {} updated for tenant {}", productToUpdate.getId(), tenantId);
     }
 
     public void deleteProduct(String id, String tenantId) {
