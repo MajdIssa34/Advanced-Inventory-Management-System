@@ -23,7 +23,7 @@ done
 
 echo ""
 echo "--- [3/4] Shutting down all running containers... ---"
-docker compose down --remove-orphans --volumes
+docker compose down --remove-orphans
 
 echo ""
 echo "--- [4/4] Spinning up all containers fresh... ---"

@@ -104,7 +104,6 @@ services:
   discovery-server:
     image: majdissa34/discovery-server:latest
     container_name: discovery-server
-    pull_policy: always
     ports:
       - "8761:8761"
     environment:
@@ -128,7 +127,6 @@ services:
   product-service:
     container_name: product-service
     image: majdissa34/product-service:latest
-    pull_policy: always
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     depends_on:
@@ -140,7 +138,6 @@ services:
   order-service:
     container_name: order-service
     image: majdissa34/order-service:latest
-    pull_policy: always
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-order:5431/order-service
@@ -154,7 +151,6 @@ services:
   inventory-service:
     container_name: inventory-service
     image: majdissa34/inventory-service:latest
-    pull_policy: always
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-inventory:5432/inventory-service
