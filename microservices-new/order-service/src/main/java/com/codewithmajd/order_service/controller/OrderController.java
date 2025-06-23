@@ -3,6 +3,7 @@ package com.codewithmajd.order_service.controller;
 import com.codewithmajd.order_service.dto.OrderRequest;
 import com.codewithmajd.order_service.model.Order;
 import com.codewithmajd.order_service.service.OrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -17,11 +18,13 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
-    @ResponseStatus(code = org.springframework.http.HttpStatus.CREATED)
-    public String placeOrder(@RequestBody OrderRequest orderRequest, @RequestHeader("X-Tenant-ID") String tenantId){
+    @ResponseStatus(code = HttpStatus.CREATED)
+    public String placeOrder(@RequestBody @Valid OrderRequest orderRequest, @RequestHeader("X-Tenant-ID") String tenantId){
         orderService.placeOrder(orderRequest, tenantId);
-        return "Order Placed";
+        return "Order Placed Successfully";
     }
+
+    // No validation changes needed for the GET methods below
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
