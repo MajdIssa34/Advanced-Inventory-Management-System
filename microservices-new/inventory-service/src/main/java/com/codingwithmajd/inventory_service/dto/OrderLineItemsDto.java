@@ -1,23 +1,18 @@
 package com.codingwithmajd.inventory_service.dto;
 
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class OrderLineItemsDto {
+public record OrderLineItemsDto(
+        // The 'id' field from the OrderLineItem entity is not needed here
+        // for inventory management purposes. Price is also not needed.
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String skuCode;
-    private BigDecimal price;
-    private Integer quantity;
-}
+        @NotBlank(message = "SKU Code cannot be blank")
+        String skuCode,
+
+        @NotNull(message = "Quantity is required")
+        @Positive(message = "Quantity to reduce must be positive")
+        Integer quantity
+) {}
