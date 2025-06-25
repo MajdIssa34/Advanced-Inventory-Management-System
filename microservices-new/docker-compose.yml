@@ -86,7 +86,7 @@ services:
     image: majdissa34/product-service:latest
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - MONGO_URI=mongodb+srv://majd34:GJK*Bqh4Uff9tE-@product.3lvt3ij.mongodb.net/?retryWrites=true&w=majority&appName=Product
+      - MONGO_URI=mongodb+srv://majd34:GJK*Bqh4Uff9tE-@product.3lvt3ij.mongodb.net/?retryWrites=true&w=majority&appName=Products
       - EUREKA_USERNAME=eureka
       - EUREKA_PASSWORD=password
       - JAVA_TOOL_OPTIONS=-Djdk.tls.client.protocols=TLSv1.2
