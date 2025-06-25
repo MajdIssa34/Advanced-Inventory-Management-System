@@ -4,7 +4,8 @@
 set -euo pipefail  # Safer: exit on error, undefined vars, or failed pipe
 
 # --- Services list ---
-SERVICES=("api-gateway" "product-service" "order-service" "inventory-service" "discovery-server")
+SERVICES2=("api-gateway" "product-service" "order-service" "inventory-service" "discovery-server")
+SERVICES=("product-service")
 
 echo ""
 echo "--- [1/5] Cleaning and packaging all microservices (skip tests)... ---"
@@ -28,9 +29,9 @@ for SERVICE in "${SERVICES[@]}"; do
   docker push "$IMAGE_NAME"
 done
 
-echo ""
-echo "--- [4/5] Shutting down all running containers... ---"
-docker compose down --remove-orphans
+#echo ""
+#echo "--- [4/5] Shutting down all running containers... ---"
+#docker compose down --remove-orphans
 
 #echo ""
 #echo "--- [5/5] Spinning up all containers fresh... ---"
