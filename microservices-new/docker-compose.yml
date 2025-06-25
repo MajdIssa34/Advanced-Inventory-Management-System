@@ -6,7 +6,6 @@ services:
       POSTGRES_DB: order-service
       POSTGRES_USER: ptechie
       POSTGRES_PASSWORD: password
-      PGDATA: /data/postgres
     volumes:
       - ./postgres-order:/data/postgres
     restart: unless-stopped
@@ -18,7 +17,6 @@ services:
       POSTGRES_DB: inventory-service
       POSTGRES_USER: ptechie
       POSTGRES_PASSWORD: password
-      PGDATA: /data/postgres
     volumes:
       - ./postgres-inventory:/data/postgres
     restart: always
@@ -70,7 +68,6 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_USERNAME=eureka
       - EUREKA_PASSWORD=password
-      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=TRACE
     depends_on:
       - discovery-server
       - keycloak
@@ -119,13 +116,12 @@ services:
       - discovery-server
     restart: always
 
-  # --- NGINX REVERSE PROXY ---
   nginx:
     image: nginx:latest
     container_name: nginx
     ports:
-      - "80:80"   # For HTTP and the Let's Encrypt challenge
-      - "443:443" # For secure HTTPS traffic
+      - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./certbot/www:/var/www/certbot
@@ -136,7 +132,6 @@ services:
       - discovery-server
     restart: always
 
-  # --- CERTBOT FOR SSL CERTIFICATES ---
   certbot:
     image: certbot/certbot
     container_name: certbot
