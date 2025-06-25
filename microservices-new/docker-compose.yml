@@ -53,6 +53,7 @@ services:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_PROXY: edge
+      KC_HOSTNAME: auth.invms.xyz
     volumes:
       - ./keycloak_data:/opt/keycloak/data
     depends_on:
