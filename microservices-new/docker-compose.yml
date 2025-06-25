@@ -6,8 +6,12 @@ services:
       POSTGRES_DB: order-service
       POSTGRES_USER: ptechie
       POSTGRES_PASSWORD: password
+      PGDATA: /data/postgres
     volumes:
       - ./postgres-order:/data/postgres
+    # This maps port 5431 on your server to the standard port 5432 inside the container
+    ports:
+      - "5431:5432"
     restart: unless-stopped
 
   postgres-inventory:
@@ -17,8 +21,11 @@ services:
       POSTGRES_DB: inventory-service
       POSTGRES_USER: ptechie
       POSTGRES_PASSWORD: password
+      PGDATA: /data/postgres
     volumes:
       - ./postgres-inventory:/data/postgres
+    ports:
+      - "5432:5432"
     restart: always
 
   keycloak-mysql:
@@ -90,7 +97,8 @@ services:
     image: majdissa34/order-service:latest
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - DB_URL=jdbc:postgresql://postgres-order:5431/order-service
+      # Connect to the correct internal port 5432
+      - DB_URL=jdbc:postgresql://postgres-order:5432/order-service
       - DB_USER=ptechie
       - DB_PASS=password
       - EUREKA_USERNAME=eureka
