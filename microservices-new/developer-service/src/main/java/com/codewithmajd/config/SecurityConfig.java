@@ -14,9 +14,10 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().authenticated()
+                        .anyRequest().authenticated() // Protect all endpoints
                 )
-                .httpBasic(httpBasic -> {})  // use empty {} for default settings
+                // Configure this service as an OAuth2 Resource Server that understands JWTs
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}))
                 .build();
     }
 }
