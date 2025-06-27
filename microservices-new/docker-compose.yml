@@ -192,15 +192,14 @@ services:
   nginx:
     image: nginx:latest
     container_name: nginx
-    pull_policy: always
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./frontend:/usr/share/nginx/html
       - ./certbot/www:/var/www/certbot
       - ./certbot/conf:/etc/letsencrypt
-      - ./frontend:/usr/share/nginx/html
     depends_on:
       keycloak:
         condition: service_healthy
