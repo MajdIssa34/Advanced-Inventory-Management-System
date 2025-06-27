@@ -6,7 +6,6 @@ services:
       POSTGRES_DB: order-service
       POSTGRES_USER: ptechie
       POSTGRES_PASSWORD: password
-      PGDATA: /data/postgres
     volumes:
       - ./postgres-order:/data/postgres
     ports:
@@ -14,6 +13,11 @@ services:
     restart: unless-stopped
     networks:
       - invms_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ptechie -d order-service"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres-inventory:
     container_name: postgres-inventory
@@ -22,7 +26,6 @@ services:
       POSTGRES_DB: inventory-service
       POSTGRES_USER: ptechie
       POSTGRES_PASSWORD: password
-      PGDATA: /data/postgres
     volumes:
       - ./postgres-inventory:/data/postgres
     ports:
@@ -30,6 +33,11 @@ services:
     restart: always
     networks:
       - invms_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ptechie -d inventory-service"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres-developer:
     container_name: postgres-developer
@@ -38,7 +46,6 @@ services:
       POSTGRES_DB: developer-service
       POSTGRES_USER: ptechie
       POSTGRES_PASSWORD: password
-      PGDATA: /data/postgres
     volumes:
       - ./postgres-developer:/data/postgres
     ports:
@@ -46,6 +53,11 @@ services:
     restart: always
     networks:
       - invms_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ptechie -d developer-service"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   keycloak-mysql:
     container_name: keycloak-mysql
@@ -60,9 +72,8 @@ services:
     restart: always
     networks:
       - invms_network
-    # vvv ADD THIS HEALTHCHECK BLOCK vvv
     healthcheck:
-      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -70,7 +81,6 @@ services:
   keycloak:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:18.0.0
-    pull_policy: always
     command: start-dev
     environment:
       KC_DB: mysql
@@ -89,12 +99,20 @@ services:
         condition: service_healthy
     restart: always
     networks:
-      - invms_network
+      invms_network:
+        aliases:
+          - keycloak-host
+    # ADD THIS HEALTHCHECK TO KEYCLOAK
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/realms/master"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   discovery-server:
     image: majdissa34/discovery-server:latest
     container_name: discovery-server
-    pull_policy: always
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_USERNAME=eureka
@@ -106,105 +124,80 @@ services:
   api-gateway:
     image: majdissa34/api-gateway:latest
     container_name: api-gateway
-    pull_policy: always
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_USERNAME=eureka
       - EUREKA_PASSWORD=password
     depends_on:
-      - discovery-server
-      - keycloak
+      discovery-server:
+        condition: service_started # Basic check is fine for Eureka
     restart: always
     networks:
       - invms_network
 
-  product-service:
-    container_name: product-service
-    image: majdissa34/product-service:latest
-    pull_policy: always
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - MONGO_URI=mongodb+srv://majd34:GJK*Bqh4Uff9tE-@product.3lvt3ij.mongodb.net/?retryWrites=true&w=majority&appName=Product
-      - EUREKA_USERNAME=eureka
-      - EUREKA_PASSWORD=password
-      - JAVA_TOOL_OPTIONS=-Djdk.tls.client.protocols=TLSv1.2
-    depends_on:
-      - discovery-server
-    restart: always
-    networks:
-      - invms_network
-
+  # All your other services (product, order, inventory, developer)
+  # should also depend on their databases being healthy.
+  # I've added this for order-service as an example.
   order-service:
-    container_name: order-service
-    image: majdissa34/order-service:latest
-    pull_policy: always
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - DB_URL=jdbc:postgresql://postgres-order:5432/order-service
-      - DB_USER=ptechie
-      - DB_PASS=password
-      - EUREKA_USERNAME=eureka
-      - EUREKA_PASSWORD=password
-      - INVENTORY_SERVICE_URL=http://inventory-service
+    # ...
     depends_on:
-      - postgres-order
-      - discovery-server
-    restart: always
+      postgres-order:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+    # ...
     networks:
       - invms_network
 
+  # Apply similar depends_on to inventory-service and developer-service
   inventory-service:
-    container_name: inventory-service
-    image: majdissa34/inventory-service:latest
-    pull_policy: always
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - DB_URL=jdbc:postgresql://postgres-inventory:5432/inventory-service
-      - DB_USER=ptechie
-      - DB_PASS=password
-      - EUREKA_USERNAME=eureka
-      - EUREKA_PASSWORD=password
+    #...
     depends_on:
-      - postgres-inventory
-      - discovery-server
-    restart: always
+      postgres-inventory:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+    #...
     networks:
       - invms_network
 
   developer-service:
-    container_name: developer-service
-    image: majdissa34/developer-service:latest
-    pull_policy: always
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - DB_URL=jdbc:postgresql://postgres-developer:5432/developer-service
-      - DB_USER=ptechie
-      - DB_PASS=password
-      - EUREKA_USERNAME=eureka
-      - EUREKA_PASSWORD=password
+    #...
     depends_on:
-      - postgres-developer
-      - discovery-server
-    restart: always
+      postgres-developer:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+    #...
     networks:
       - invms_network
+
+  product-service:
+    #...
+    depends_on:
+      - discovery-server
+    #...
+    networks:
+      - invms_network
+
 
   nginx:
     image: nginx:latest
     container_name: nginx
-    pull_policy: always
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./frontend:/usr/share/nginx/html
       - ./certbot/www:/var/www/certbot
       - ./certbot/conf:/etc/letsencrypt
-      - ./frontend:/usr/share/nginx/html
+    # MODIFY THIS depends_on block FOR NGINX
     depends_on:
-      - api-gateway
-      - keycloak
-      - discovery-server
+      keycloak:
+        condition: service_healthy
+      api-gateway:
+        condition: service_started
     restart: always
     networks:
       - invms_network
@@ -212,7 +205,6 @@ services:
   certbot:
     image: certbot/certbot
     container_name: certbot
-    pull_policy: always
     volumes:
       - ./certbot/www:/var/www/certbot
       - ./certbot/conf:/etc/letsencrypt
